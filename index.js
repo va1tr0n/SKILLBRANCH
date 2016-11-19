@@ -1,6 +1,7 @@
-
 import express from 'express';
 import cors from 'cors';
+import fetch from 'isomorphic-fetch';
+import _ from 'lodash';
 
 const app = express();
 app.use(cors());
@@ -52,6 +53,47 @@ app.get('/c', (req, res) => {
     }
 
     res.send('@' + (username[1] || username[2]));
+});
+
+// Задание 3A
+const pcUrl = 'https://gist.githubusercontent.com/isuvorov/ce6b8d87983611482aac89f6d7bc0037/raw/pc.json';
+app.get('/Task3/volumes', async (req, res) => {
+  let resp = await fetch(pcUrl)
+  let data = await resp.json();
+  let disks = data.hdd;
+  let result = {};
+  disks.forEach(function(item, i) {
+    if(item.volume in result){
+      result[item.volume] += item.size;
+    }else{
+      result[item.volume] = item.size;
+    }
+  });
+  res.json(result);
+});
+
+app.get('/Task3/*', async (req, res) => {
+  let resp = await fetch(pcUrl)
+  let data = await resp.json();
+
+  let url = req.path.match(/Task3\/?(.*)/).pop();
+  let search = url.split("/").filter(e => !!e);
+
+  try {
+    let result = search.reduce(function(prev, cur) {
+      if(prev.hasOwnProperty(cur)) {
+        prev = prev[cur]
+      } else {
+        throw Error();
+      }
+
+      return prev;
+    }, data);
+    res.json(result);
+  } catch (e) {
+    res.status(404).send("Not Found")
+  }
+
 });
 
 app.listen(3000, () => {
